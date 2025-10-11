@@ -1,4 +1,3 @@
-
 user="$(mktemp)"
 figftemp="$(mktemp)"
 logotemp="$(mktemp)"
@@ -128,6 +127,11 @@ print_prefixed_file() {
 banner() {
     HIDECURSOR
     clear
+    
+    # Generate dynamic figlet with current time
+    current_time=$(date '+%H:%M')
+    figlet -f small "$current_time" > "$figftemp" 2>/dev/null || echo "$current_time" > "$figftemp"
+    
     echo -e "\033[35;1m"
     PUT 0 0
     echo "┌$(seq -s─ $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')┐"
@@ -136,7 +140,7 @@ banner() {
     done
     echo "└$(seq -s─ $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')┘"
     PUT 5 0
-    print_prefixed_file "${1}"
+    print_prefixed_file "$figftemp"
     PUT 2 0
     print_center_file "${2}"
     PUT 1 0
