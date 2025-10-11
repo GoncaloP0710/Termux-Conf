@@ -118,6 +118,16 @@ if command -v boxes >/dev/null 2>&1 && \
     title=$(grep '^title=' "$CONFIG" | cut -d'=' -f2-)
     [[ -z "$title" ]] && title="tyro 2.0"
 
+    # Support dynamic tokens in title from config
+    case "$title" in
+      TIME|time|{TIME}|{time}|%TIME%|%time%)
+        title="$(date '+%H:%M')"
+        ;;
+      DATETIME|datetime|{DATETIME}|{datetime}|%DATETIME%|%datetime%)
+        title="$(date '+%Y-%m-%d %H:%M')"
+        ;;
+    esac
+
     tput cup 4 0
     figlet -f pixelfont -c -t -p \
         -w "$(echo "$((${COLUMNS:-80}+17))")" \

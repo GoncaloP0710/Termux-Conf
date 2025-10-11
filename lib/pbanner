@@ -148,7 +148,7 @@ banner() {
     for ((i = 1; i <= 8; i++)); do
         echo "│"
     done
-    echo -e "\e[32m$(date '+%H:%M')\e[0m"
+    # Removed small time at the bottom to avoid duplicate time display
     PUT 10 0
     echo
     NORM
