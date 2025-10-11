@@ -1,9 +1,9 @@
 case "$SHELL" in
   */zsh)
     if command -v fzf >/dev/null 2>&1 && command -v fd >/dev/null 2>&1; then
-      
+
       export FZF_DEFAULT_OPTS=" \
-        --color fg:#ffffff,bg:#222222,hl:#98c379,fg+:#ffffff,bg+:#222222,hl+:#98c379,prompt:#61afef,pointer:#e5c07b,marker:#56b6c2 \
+        --color fg:#ffffff,bg:#222222,hl:#98c379,fg+:#ffffff,bg+:#222222,hl+:#98c379,prompt:#222222,pointer:#e5c07b,marker:#56b6c2 \
         --ansi --reverse --no-info --no-scrollbar \
         --pointer=' '"
 
