@@ -219,8 +219,8 @@ setup_starship_prompt() {
   mkdir -p ~/.config
 
   # If user has dotfiles version, symlink it
-  if [[ -f ~/dotfiles/starship/starship.toml ]]; then
-    ln -sf ~/dotfiles/starship/starship.toml ~/.config/starship.toml
+  if [[ -f "$SCRIPT_DIR/dotfile/starship/starship.toml" ]]; then
+    ln -sf "$SCRIPT_DIR/dotfile/starship/starship.toml" ~/.config/starship.toml
     echo -e "\033[1;32m[✔] Linked dotfiles starship.toml to ~/.config/starship.toml\033[0m"
   elif [[ -f ~/dotfiles/config/starship/starship.toml ]]; then
     ln -sf ~/dotfiles/config/starship/starship.toml ~/.config/starship.toml
