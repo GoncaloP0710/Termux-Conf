@@ -124,51 +124,6 @@ if command -v figlet >/dev/null 2>&1 && \
         ;;
     esac
 
-    # Render figlet title (plain for measuring)
-    FIGLET_FONT="${THEADER_FIGLET_FONT:-big}"
-    FIGLET_WIDTH="${THEADER_FIGLET_WIDTH:-1000}"
-    fig_tmp="$(mktemp)"
-    figlet -f "$FIGLET_FONT" -w "$FIGLET_WIDTH" "$title" > "$fig_tmp" 2>/dev/null || echo "$title" > "$fig_tmp"
-
-    # Logo and indent from config
-    logo_file=$(grep '^logo=' "$CONFIG" | cut -d'=' -f2)
-    indent_size=$(grep '^indent=' "$CONFIG" | cut -d'=' -f2)
-    [[ -z "$indent_size" ]] && indent_size=2
-    indent=$(printf '%*s' "$indent_size")
-
-    # Measure logo (without color stripping to keep visible width conservative)
-    if [[ -n "$logo_file" && -f "$LOGO_DIR/$logo_file" ]]; then
-      logo_h=$(wc -l < "$LOGO_DIR/$logo_file")
-      logo_w=$(awk '{ if (length>m) m=length } END{ print (m?m:0) }' "$LOGO_DIR/$logo_file")
-    else
-      logo_h=0; logo_w=0
-    fi
-
-    # Measure figlet output
-    fig_h=$(wc -l < "$fig_tmp")
-    fig_w=$(awk '{ if (length>m) m=length } END{ print (m?m:0) }' "$fig_tmp")
-
-    # Inner box size (max of logo/figlet widths with left indent + right padding)
-    right_pad=2
-    inner_w_base=$(( indent_size + logo_w ))
-    (( indent_size + fig_w > inner_w_base )) && inner_w_base=$(( indent_size + fig_w ))
-    inner_w=$(( inner_w_base + right_pad ))
-
-    v_gap=1
-    inner_h=$(( logo_h + v_gap + fig_h ))
-
-    # Draw dynamic heavy border
-    tput setaf 7; tput bold
-    tput cup 0 0
-    hbar=$(printf '━%.0s' $(seq 1 "$inner_w"))
-    spaces=$(printf ' %.0s' $(seq 1 "$inner_w"))
-    printf '┏%s┓\n' "$hbar"
-    for ((i = 1; i <= inner_h; i++)); do
-      printf '┃%s┃\n' "$spaces"
-    done
-    printf '┗%s┛\n' "$hbar"
-    tput sgr0
-
     # Print logo at top inside the box
     if [[ -n "$logo_file" && -f "$LOGO_DIR/$logo_file" ]]; then
       tput cup 1 1
