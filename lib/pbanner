@@ -130,6 +130,27 @@ print_prefixed_file() {
         printf "%s%s\n" "$prefix_spaces" "$line"
     done <<<"$content"
 }
+
+# Print a multiline file inside the box starting at a given row/col with a left prefix
+print_file_at_with_prefix() {
+    local file="$1"; local row_start="$2"; local col_start="$3"; local prefix_spaces_count="$4"
+    local content
+    if [[ -f "$file" ]]; then
+        content=$(sed "s/\x1B\[[^0-9;]*[mGK]//g" "$file")
+    else
+        echo "Error: File '$file' not found."
+        return 1
+    fi
+    local i=0
+    local prefix
+    prefix=$(printf "%*s" "$prefix_spaces_count" "")
+    while IFS= read -r line; do
+        PUT $((row_start + i)) $((col_start))
+        printf "%s%s" "$prefix" "$line"
+        i=$((i+1))
+    done <<<"$content"
+}
+
 # ${1}=figlet, ${2}=logo
 banner() {
     HIDECURSOR
@@ -168,10 +189,10 @@ banner() {
 
     # Draw dynamic border sized to content
     echo -e "\033[37;1m"
-    PUT 0 0
+    PUT 1 1
     local hbar spaces
-    hbar="$(seq -s─ $((inner_w + 1)) | tr -d '[:digit:]')"
-    spaces="$(seq -s\  $((inner_w + 1)) | tr -d '[:digit:]')"
+    hbar="$(seq -s─ $((inner_w + 1)) | tr -d '[:digit:]')"   # yields inner_w dashes
+    spaces="$(seq -s\  $((inner_w + 1)) | tr -d '[:digit:]')" # yields inner_w spaces
     echo "┌${hbar}┐"
     for ((i = 1; i <= inner_h; i++)); do
         echo "│${spaces}│"
@@ -179,16 +200,17 @@ banner() {
     echo "└${hbar}┘"
 
     # Print logo at the top inside the box
-    PUT 1 0
-    print_center_file "$logo_file"
+    local content_col=2   # one column inside left border
+    local content_row=2   # one row below top border
+    print_file_at_with_prefix "$logo_file" "$content_row" "$content_col" "$LOGO_PREFIX"
 
     # Print time figlet below the logo inside the box
-    PUT $((1 + logo_h + v_gap)) 0
+    content_row=$((2 + logo_h + v_gap))
     echo -en "\033[97m"
-    print_prefixed_file "$figftemp"
+    print_file_at_with_prefix "$figftemp" "$content_row" "$content_col" "$FIG_PREFIX"
     echo -en "\033[0m"
 
-    PUT $((inner_h + 2)) 0
+    PUT $((inner_h + 3)) 1
     echo
     NORM
 }
