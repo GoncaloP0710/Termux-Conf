@@ -55,13 +55,13 @@ OzIzMjsyMzdt4paXG1szODsyOzI0NDsxOTk7MjE2OzQ4OzI7MjQyOzIzNDsyMzlt4paWG1szODsy
 OzI0NTsxMzM7MTczOzQ4OzI7MjQyOzIzODsyNDFt4paEG1szODsyOzIzNDsxNTA7MTgyOzQ4OzI7
 MjMzOzIyOTsyMzJt4paXG1szODsyOzI0NjsyMDs5OTs0ODsyOzIzMzsxODA7MjAwbeKWhBtbMzg7
 MjsyMjY7MTY7ODk7NDg7MjsyNDc7NTA7MTE7beKWhBtbMzg7MjsyMjU7MTY7ODg7NDlt4paAG1s0
-OW0gG1s0OW0gIBtbMG0KG1s0OW0gIBtbMzg7MjsyNTE7MTk7MTAzbeKWgBtbMzg7MjsyNTE7MjA7
-MTAybeKWgBtbNDg7MjsyNTE7MjA7MTAybSAbWzM4OzI7MjUxOzIyOzEwMzs0ODsyOzI1MTsyMDsx
-MDJt4padG1s0ODsyOzI1MTsyMDsxMDJt4paYG1szODsyOzI0ODs4MjsxNDE7NDg7MjsyNTA7MzM7
-MTA4beKWnRtbMzg7MjsyNTA7MzU7MTExOzQ4OzI7MjUxOzIwOzEwMm3ilpgbWzM4OzI7MjQ0OzE5
-Ozk4OzQ4OzI7MjUwOzIxOzEwMm3ilpcbWzM4OzI7MjMyOzE3OzkyOzQ4OzI7MjUwOzIwOzEwMW3i
-loQbWzM4OzI7MjMxOzE2Ozg5OzQ4OzI7MjI0OzE2Ozg4beKWmhtbMzg7MjsxNTk7MTE7NjI7NDlt
-4paAICAgG1swbQo=
+OW0gIBtbMG0KG1s0OW0gIBtbMzg7MjsyNTE7MTk7MTAzbeKWgBtbMzg7MjsyNTE7MjA7MTAybeKW
+gBtbNDg7MjsyNTE7MjA7MTAybSAbWzM4OzI7MjUxOzIyOzEwMzs0ODsyOzI1MTsyMDsxMDJt4pad
+G1s0ODsyOzI1MTsyMDsxMDJt4paYG1szODsyOzI0ODs4MjsxNDE7NDg7MjsyNTA7MzM7MTA4beKW
+nRtbMzg7MjsyNTA7MzU7MTExOzQ4OzI7MjUxOzIwOzEwMm3ilpgbWzM4OzI7MjQ0OzE5Ozk4OzQ4
+OzI7MjUwOzIxOzEwMm3ilpcbWzM4OzI7MjMyOzE3OzkyOzQ4OzI7MjUwOzIwOzEwMW3iloQbWzM4
+OzI7MjMxOzE2Ozg5OzQ4OzI7MjI0OzE2Ozg4beKWmhtbMzg7MjsxNTk7MTE7NjI7NDlt4paAICAg
+G1swbQo=
 EOF
 base64 -d >"$figftemp" <<'EOF'
 G1szODsyOzIzNzsxMjk7MTdt4paAG1szOW0bWzM4OzI7MjM5OzEyNTsxOW3ilogbWzM5bRtbMzg7
@@ -146,7 +146,10 @@ banner() {
     echo "└$(seq -s─ $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')┘"
 
     PUT 5 0
+    # Make figlet output bright white, then reset color
+    echo -en "\033[97m"
     print_prefixed_file "$figftemp"
+    echo -en "\033[0m"
 
     PUT 2 0
     print_center_file "$logo_file"
