@@ -231,10 +231,14 @@ setup_starship_prompt() {
   fi
 
   # Ensure Zsh loads Starship
-  if ! grep -q 'eval "$(starship init zsh)"' ~/.zshrc; then
+  if ! grep -Fq 'eval "$(starship init zsh)"' "$HOME/.zshrc" 2>/dev/null; then
+    # Add a newline if .zshrc doesn't end with one
+    [[ -s "$HOME/.zshrc" && $(tail -c1 "$HOME/.zshrc") != "" ]] && printf '\n' >> "$HOME/.zshrc"
+    
     printf '%s\n' 'eval "$(starship init zsh)"' | tee -a "$HOME/.zshrc" >/dev/null
     echo -e "\033[1;32m[✔] Added Starship init line to .zshrc\033[0m"
   fi
+
 
   # === Make Zsh the default shell in Termux === #
   if [[ "$PREFIX" == *"/com.termux/"* ]]; then
