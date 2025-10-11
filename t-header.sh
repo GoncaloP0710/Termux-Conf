@@ -35,7 +35,7 @@ conf() {
 
 install_packages() {
   # package list
-  packages=(curl fd figlet ruby boxes gum bat logo-ls eza zsh timg neofetch)
+  packages=(curl fd figlet openssl ruby boxes gum bat logo-ls eza zsh timg neofetch)
 
   echo -e "\n[🔧] Installing required packages...\n"
 
