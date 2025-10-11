@@ -124,14 +124,24 @@ if command -v figlet >/dev/null 2>&1 && \
         ;;
     esac
 
-    # Print logo at top inside the box
+    # Render figlet title (plain for measuring)
+    FIGLET_FONT="${THEADER_FIGLET_FONT:-big}"
+    FIGLET_WIDTH="${THEADER_FIGLET_WIDTH:-1000}"
+    fig_tmp="$(mktemp)"
+    figlet -f "$FIGLET_FONT" -w "$FIGLET_WIDTH" "$title" > "$fig_tmp" 2>/dev/null || echo "$title" > "$fig_tmp"
+
+    # Logo and indent from config
+    logo_file=$(grep '^logo=' "$CONFIG" | cut -d'=' -f2)
+    indent_size=$(grep '^indent=' "$CONFIG" | cut -d'=' -f2)
+    [[ -z "$indent_size" ]] && indent_size=2
+    indent=$(printf '%*s' "$indent_size")
+
+    # Print logo at the top
     if [[ -n "$logo_file" && -f "$LOGO_DIR/$logo_file" ]]; then
-      tput cup 1 1
       sed "s/^/${indent}/" "$LOGO_DIR/$logo_file"
     fi
 
-    # Print title (figlet) below logo, optionally with lolcat
-    tput cup $((1 + logo_h + v_gap)) 1
+    # Print title (figlet) next to the logo
     if command -v lolcat >/dev/null 2>&1; then
       sed "s/^/${indent}/" "$fig_tmp" | lolcat -f
     else
@@ -142,7 +152,6 @@ if command -v figlet >/dev/null 2>&1 && \
 
     # Cleanup and restore cursor
     rm -f "$fig_tmp"
-    tput cup $((inner_h + 2)) 0
     tput cnorm
   }
 
