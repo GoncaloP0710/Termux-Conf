@@ -35,7 +35,7 @@ conf() {
 
 install_packages() {
   # package list
-  packages=(curl fd figlet ruby boxes gum bat logo-ls eza zsh timg)
+  packages=(curl fd figlet ruby boxes gum bat logo-ls eza zsh timg neofetch)
 
   echo -e "\n[🔧] Installing required packages...\n"
 
@@ -47,6 +47,15 @@ install_packages() {
       pkg install -y "$pkg"
     fi
   done
+
+  # Setup neofetch custom config
+  if command -v neofetch >/dev/null 2>&1; then
+    echo "[✔] Setting up custom neofetch config..."
+    mkdir -p "$HOME/.config"
+    # Copy entire neofetch folder from dotfile
+    cp -r "$SCRIPT_DIR/dotfile/neofetch" "$HOME/.config/"
+    echo "[✔] Custom neofetch config applied"
+  fi
 
   # Check for lolcat
   if command -v lolcat >/dev/null 2>&1; then
@@ -73,28 +82,6 @@ install_packages() {
     echo "[✔] pixelfont.flf already exists"
   fi
 
-  # Install Nerd Font (UbuntuMono Nerd Font)
-  nerdflink="https://github.com/ryanoasis/nerd-fonts/releases/download/v3.4.0/UbuntuMono.zip"
-  FONT_DIR="$HOME/.termux"
-  mkdir -p "$FONT_DIR"
-  TMPDIR=$(mktemp -d)
-
-  echo "[➕] Downloading Nerd Font (UbuntuMono)..."
-  curl -L "$nerdflink" -o "$TMPDIR/UbuntuMono.zip"
-
-  echo "[🎨] Installing Nerd Font to $FONT_DIR/font.ttf ..."
-  unzip -p "$TMPDIR/UbuntuMono.zip" "UbuntuMonoNerdFontMono-Regular.ttf" >"$FONT_DIR/font.ttf"
-
-  rm -rf "$TMPDIR"
-
-  echo "[✔] Nerd Font installed at $FONT_DIR/font.ttf"
-  echo "[ℹ] Restart Termux app to apply new font."# Demo text with lolcat if available
-  echo -e "\n[🎨] Demo text:\n"
-  if command -v lolcat >/dev/null 2>&1; then
-    echo "lolcat Installed!" | figlet -f pixelfont | lolcat
-  else
-    echo "lolcat not Installed!" | figlet -f pixelfont
-  fi
   # chsh -s zsh
   # termux-reload-settings
 }
