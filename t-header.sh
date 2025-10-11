@@ -157,7 +157,7 @@ menu_zsh_setup() {
     esac
   else
     # Already installed → show main options
-    local main_options="1. Oh-my-zsh (Plugins Manager)\n2. Theader setup"
+    local main_options="1. Oh-my-zsh (Plugins Manager)\n2. Theader setup\n3. Starship prompt setup"
 
     local subchoice
     subchoice=$(
@@ -196,12 +196,45 @@ menu_zsh_setup() {
         ;;
       "2. Theader setup")
         echo -e "\033[1;36m[ℹ] Running Theader setup...\033[0m"
-        # Your Theader setup logic
         menu_theader_setup
+        ;;
+      "3. Starship prompt setup")
+        echo -e "\033[1;35m[⚙] Setting up Starship prompt...\033[0m"
+        setup_starship_prompt
         ;;
     esac
   fi
 }
+
+# === Function: setup_starship_prompt === #
+setup_starship_prompt() {
+  # Check if Starship is installed
+  if ! command -v starship >/dev/null 2>&1; then
+    echo -e "\033[1;33m[➤] Installing Starship...\033[0m"
+    curl -sS https://starship.rs/install.sh | sh -s -- -y
+  fi
+
+  # Create config directory if missing
+  mkdir -p ~/.config
+
+  # If user has dotfiles version, symlink it
+  if [[ -f ~/dotfile/starship/starship.toml ]]; then
+    ln -sf ~/dotfile/starship/starship.toml ~/.config/starship.toml
+    echo -e "\033[1;32m[✔] Linked dotfiles starship.toml to ~/.config/starship.toml\033[0m"
+  else
+    echo -e "\033[1;31m[⚠] No starship.toml found in ~/dotfiles — using default.\033[0m"
+    starship preset plain-text-symbols -o ~/.config/starship.toml
+  fi
+
+  # Ensure Zsh loads Starship
+  if ! grep -q 'eval "$(starship init zsh)"' ~/.zshrc; then
+    echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+    echo -e "\033[1;32m[✔] Added Starship init to .zshrc\033[0m"
+  fi
+
+  echo -e "\033[1;34m[ℹ] Starship setup complete! Restart Zsh to apply.\033[0m"
+}
+
 
 # t-header setup
 menu_theader_setup() {

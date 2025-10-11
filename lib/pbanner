@@ -1,10 +1,8 @@
+
 user="$(mktemp)"
 figftemp="$(mktemp)"
 logotemp="$(mktemp)"
 VAR4=$(echo $(($(stty size | cut -d ' ' -f 2) - 17)))
-# Use dynamic left padding for logo and figlet content
-LOGO_PREFIX=3
-FIG_PREFIX=24
 PUT() { echo -en "\033[${1};${2}H"; }
 DRAW() {
     echo -en "\033%"
@@ -57,14 +55,14 @@ MjUxOzI4OzEwNzs0ODsyOzI0MjsyMjI7MjMxbeKWlhtbMzg7MjsyNDg7ODM7MTQyOzQ4OzI7MjQy
 OzIzMjsyMzdt4paXG1szODsyOzI0NDsxOTk7MjE2OzQ4OzI7MjQyOzIzNDsyMzlt4paWG1szODsy
 OzI0NTsxMzM7MTczOzQ4OzI7MjQyOzIzODsyNDFt4paEG1szODsyOzIzNDsxNTA7MTgyOzQ4OzI7
 MjMzOzIyOTsyMzJt4paXG1szODsyOzI0NjsyMDs5OTs0ODsyOzIzMzsxODA7MjAwbeKWhBtbMzg7
-MjsyMjY7MTY7ODk7NDg7MjsyNDc7NTA7MTE7beKWhBtbMzg7MjsyMjU7MTY7ODg7NDlt4paAG1s0
-OW0gIBtbMG0KG1s0OW0gIBtbMzg7MjsyNTE7MTk7MTAzbeKWgBtbMzg7MjsyNTE7MjA7MTAybeKW
-gBtbNDg7MjsyNTE7MjA7MTAybSAbWzM4OzI7MjUxOzIyOzEwMzs0ODsyOzI1MTsyMDsxMDJt4pad
-G1s0ODsyOzI1MTsyMDsxMDJt4paYG1szODsyOzI0ODs4MjsxNDE7NDg7MjsyNTA7MzM7MTA4beKW
-nRtbMzg7MjsyNTA7MzU7MTExOzQ4OzI7MjUxOzIwOzEwMm3ilpgbWzM4OzI7MjQ0OzE5Ozk4OzQ4
-OzI7MjUwOzIxOzEwMm3ilpcbWzM4OzI7MjMyOzE3OzkyOzQ4OzI7MjUwOzIwOzEwMW3iloQbWzM4
-OzI7MjMxOzE2Ozg5OzQ4OzI7MjI0OzE2Ozg4beKWmhtbMzg7MjsxNTk7MTE7NjI7NDlt4paAICAg
-G1swbQo=
+MjsyMjY7MTY7ODk7NDg7MjsyNDc7NTA7MTE3beKWhBtbMzg7MjsyMjU7MTY7ODg7NDlt4paAG1s0
+OW0gG1s0OW0gIBtbMG0KG1s0OW0gIBtbMzg7MjsyNTE7MTk7MTAzbeKWgBtbMzg7MjsyNTE7MjA7
+MTAybeKWgBtbNDg7MjsyNTE7MjA7MTAybSAbWzM4OzI7MjUxOzIyOzEwMzs0ODsyOzI1MTsyMDsx
+MDJt4padG1s0ODsyOzI1MTsyMDsxMDJt4paYG1szODsyOzI0ODs4MjsxNDE7NDg7MjsyNTA7MzM7
+MTA4beKWnRtbMzg7MjsyNTA7MzU7MTExOzQ4OzI7MjUxOzIwOzEwMm3ilpgbWzM4OzI7MjQ0OzE5
+Ozk4OzQ4OzI7MjUwOzIxOzEwMm3ilpcbWzM4OzI7MjMyOzE3OzkyOzQ4OzI7MjUwOzIwOzEwMW3i
+loQbWzM4OzI7MjMxOzE2Ozg5OzQ4OzI7MjI0OzE2Ozg4beKWmhtbMzg7MjsxNTk7MTE7NjI7NDlt
+4paAICAgG1swbQo=
 EOF
 base64 -d >"$figftemp" <<'EOF'
 G1szODsyOzIzNzsxMjk7MTdt4paAG1szOW0bWzM4OzI7MjM5OzEyNTsxOW3ilogbWzM5bRtbMzg7
@@ -106,11 +104,9 @@ print_center_file() {
         echo "Error: File '$file' not found."
         return 1
     fi
-    # Use dynamic left padding matching border calc
-    local prefix_spaces
-    prefix_spaces=$(printf "%*s" "$LOGO_PREFIX" "")
+    local prefix="   " # 3 spaces
     while IFS= read -r line; do
-        printf "%s%s\n" "$prefix_spaces" "$line"
+        printf "%s%s\n" "$prefix" "$line"
     done <<<"$content"
 }
 
@@ -123,97 +119,34 @@ print_prefixed_file() {
         echo "Error: File '$file' not found."
         return 1
     fi
-    # Use dynamic left padding matching border calc
-    local prefix_spaces
-    prefix_spaces=$(printf "%*s" "$FIG_PREFIX" "")
+    local prefix="                        " # 15 spaces
     while IFS= read -r line; do
-        printf "%s%s\n" "$prefix_spaces" "$line"
-    done <<<"$content"
-}
-
-# Print a multiline file at a given row/col with a left prefix count
-print_file_at_with_prefix() {
-    local file="$1"; local row_start="$2"; local col_start="$3"; local prefix_spaces_count="$4"
-    local content
-    if [[ -f "$file" ]]; then
-        content=$(sed "s/\x1B\[[^0-9;]*[mGK]//g" "$file")
-    else
-        echo "Error: File '$file' not found."
-        return 1
-    fi
-    local i=0
-    local prefix
-    prefix=$(printf "%*s" "$prefix_spaces_count" "")
-    while IFS= read -r line; do
-        PUT $((row_start + i)) $((col_start))
         printf "%s%s\n" "$prefix" "$line"
-        i=$((i+1))
     done <<<"$content"
 }
-
 # ${1}=figlet, ${2}=logo
 banner() {
     HIDECURSOR
     clear
-
-    # Always generate dynamic figlet with current time (ignore passed figlet parameter)
-    current_time=$(date '+%H:%M')
-    # Use a larger figlet font for bigger time display
-    figlet -f big "$current_time" > "$figftemp" 2>/dev/null || echo "$current_time" > "$figftemp"
-
-    # Use passed logo parameter if provided, otherwise use default logo
-    local logo_file="${2:-$logotemp}"
-
-    # Calculate dynamic border size based on logo and figlet
-    local strip_ansi='s/\x1B\[[^0-9;]*[mGK]//g'
-    local logo_clean figlet_clean
-    logo_clean=$(sed "$strip_ansi" "$logo_file")
-    figlet_clean=$(sed "$strip_ansi" "$figftemp" 2>/dev/null || cat "$figftemp")
-
-    # Dimensions
-    local logo_h logo_w fig_h fig_w
-    logo_h=$(printf "%s\n" "$logo_clean" | wc -l)
-    logo_w=$(printf "%s\n" "$logo_clean" | awk '{ if (length>m) m=length } END{ print (m?m:0) }')
-    fig_h=$(printf "%s\n" "$figlet_clean" | wc -l)
-    fig_w=$(printf "%s\n" "$figlet_clean" | awk '{ if (length>m) m=length } END{ print (m?m:0) }')
-
-    # Padding and inner box size
-    local right_pad=2
-    local inner_w_base=$(( LOGO_PREFIX + logo_w ))
-    if (( FIG_PREFIX + fig_w > inner_w_base )); then
-        inner_w_base=$(( FIG_PREFIX + fig_w ))
-    fi
-    local inner_w=$(( inner_w_base + right_pad ))
-
-    local v_gap=1
-    local inner_h=$(( logo_h + v_gap + fig_h ))
-
-    # Draw dynamic border sized to content at row 1, col 1
-    echo -e "\033[37;1m"
-    PUT 1 1
-    # Build hbar/spaces with the desired inner width using seq trick (N+1 -> N repeated chars)
-    local hbar spaces
-    hbar="$(seq -s─ $((inner_w + 1)) | tr -d '[:digit:]')"
-    spaces="$(seq -s\  $((inner_w + 1)) | tr -d '[:digit:]')"
-    echo "┌${hbar}┐"
-    for ((i = 1; i <= inner_h; i++)); do
-        echo "│${spaces}│"
+    echo -e "\033[35;1m"
+    PUT 0 0
+    echo "┌$(seq -s─ $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')┐"
+    for ((i = 1; i <= 8; i++)); do
+        echo "│$(seq -s\  $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')│"
     done
-    echo "└${hbar}┘"
-
-    # Print logo at the top inside the box (one row/col inside border)
-    local content_col=2   # one column inside left border
-    local content_row=2   # one row below top border
-    print_file_at_with_prefix "$logo_file" "$content_row" "$content_col" "$LOGO_PREFIX"
-
-    # Print time figlet below the logo inside the box
-    content_row=$((2 + logo_h + v_gap))
-    echo -en "\033[97m"
-    print_file_at_with_prefix "$figftemp" "$content_row" "$content_col" "$FIG_PREFIX"
-    echo -en "\033[0m"
-
-    # Move cursor below the box and restore
-    PUT $((inner_h + 3)) 1
+    echo "└$(seq -s─ $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')┘"
+    PUT 5 0
+    print_prefixed_file "${1}"
+    PUT 2 0
+    print_center_file "${2}"
+    PUT 1 0
+    echo -e "\033[35;1m"
+    for ((i = 1; i <= 8; i++)); do
+        echo "│"
+    done
+    PUT 9 ${VAR4}
+    echo -e "\e[32mSetup Script \e[33m3.0\e[0m"
+    PUT 10 0
     echo
     NORM
 }
