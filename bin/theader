@@ -55,7 +55,7 @@ if command -v gum >/dev/null 2>&1; then
 
   # Dracula colors
   HEADER_COLOR="#bd93f9"    # purple
-  SEPARATOR_COLOR="#6272a4" # gray/comment
+  SEPARATOR_COLOR="#e0e0e0" # gray/comment
 
   # Nerd Font icons
   ICON_LOGO="󰝘"      # logo/art
