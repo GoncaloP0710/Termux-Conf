@@ -110,7 +110,7 @@ if command -v boxes >/dev/null 2>&1 && \
     CONFIG="$HOME/.config/theader/theader.cfg"
     LOGO_DIR="$HOME/.config/theader/logo"
 
-    echo -e "\033[34m$(echo "" | \
+    echo -e "\033[37m$(echo "" | \
         boxes -a c -s "$(echo "${COLUMNS:-80}x10")" \
         -d ansi-heavy)\033[0m"
 
@@ -129,7 +129,8 @@ if command -v boxes >/dev/null 2>&1 && \
     esac
 
     tput cup 4 0
-    figlet -f pixelfont -c -t -p \
+    # Use a larger figlet font for bigger time/title
+    figlet -f big -c -t -p \
         -w "$(echo "$((${COLUMNS:-80}+17))")" \
         "$title" | lolcat -f
 
@@ -145,7 +146,8 @@ if command -v boxes >/dev/null 2>&1 && \
       sed "s/^/${indent}/" "$LOGO_DIR/$logo_file"
 
     tput cup 1 0
-    tput setaf 4
+    # Set vertical separator color to white
+    tput setaf 7
     for ((i=1; i<=8; i++)); do echo "┃"; done
 
     tput cup 10 0
