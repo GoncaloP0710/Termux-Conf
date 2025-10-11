@@ -330,6 +330,20 @@ if [ ${pkgsize} -lt 2000 ]; then
   echo -ne "\033[31m\r[*] \033[4;32mPackage Update and Upgrade or change repo \e[0m\n"
   exit 1
 fi
+
+
+# Ensure fzf is installed
+if ! command -v fzf >/dev/null 2>&1; then
+  echo -e "\033[1;33m[*] fzf not found. Installing fzf...\033[0m"
+  pkg install -y fzf
+  if command -v fzf >/dev/null 2>&1; then
+    echo -e "\033[1;32m[✔] fzf installed successfully\033[0m"
+  else
+    echo -e "\033[1;31m[✘] Failed to install fzf. Please install it manually.\033[0m"
+    exit 1
+  fi
+fi
+
 # ✅ Check fzf installed or not
 if ! command -v fzf >/dev/null 2>&1; then
   echo -e "\033[31m\r[*] \033[4;32mfzf command not found!\033[0m"
