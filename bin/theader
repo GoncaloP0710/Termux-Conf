@@ -63,9 +63,9 @@ if command -v gum >/dev/null 2>&1; then
   ICON_PROP="󰒓"     # config/properties
   ICON_THEME="󰏘"    # theme/appearance
 
-  # Header + separator
-  gum style --foreground="$HEADER_COLOR" --align=center --border=none \
-    "theader • choose a command"
+  # Display current time instead of static title
+  NOW=$(date "+%H:%M:%S")
+  gum style --foreground="$HEADER_COLOR" --align=center --border=none "🕒  $NOW"
   gum style --foreground="$SEPARATOR_COLOR" --border=none "$sep"
 
   # Menu with icons

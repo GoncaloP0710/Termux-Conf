@@ -44,7 +44,7 @@ install_packages() {
       echo "[✔] $pkg already installed"
     else
       echo "[➕] Installing $pkg ..."
-      pkg install -y "$pkg"
+      yes "" | pkg install -y "$pkg"
     fi
   done
 
