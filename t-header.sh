@@ -232,7 +232,7 @@ setup_starship_prompt() {
 
   # Ensure Zsh loads Starship
   if ! grep -q 'eval "$(starship init zsh)"' ~/.zshrc; then
-    echo 'eval "$(starship init zsh)"' >> ~/.zshrc
+    printf '%s\n' 'eval "$(starship init zsh)"' | tee -a "$HOME/.zshrc" >/dev/null
     echo -e "\033[1;32m[✔] Added Starship init line to .zshrc\033[0m"
   fi
 
