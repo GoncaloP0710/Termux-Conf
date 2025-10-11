@@ -218,7 +218,7 @@ setup_starship_prompt() {
   # Create config directory if missing
   mkdir -p ~/.config
 
-  # If user has dotfiles version, symlink it
+  # Link user’s starship.toml if present
   if [[ -f "$SCRIPT_DIR/dotfile/starship/starship.toml" ]]; then
     ln -sf "$SCRIPT_DIR/dotfile/starship/starship.toml" ~/.config/starship.toml
     echo -e "\033[1;32m[✔] Linked dotfiles starship.toml to ~/.config/starship.toml\033[0m"
@@ -236,8 +236,30 @@ setup_starship_prompt() {
     echo -e "\033[1;32m[✔] Added Starship init line to .zshrc\033[0m"
   fi
 
-  echo -e "\033[1;34m[ℹ] Starship setup complete! Restart Zsh to apply.\033[0m"
+  # === Make Zsh the default shell in Termux === #
+  if [[ "$PREFIX" == *"/com.termux/"* ]]; then
+    # Ensure zsh is installed
+    if ! command -v zsh >/dev/null 2>&1; then
+      echo -e "\033[1;33m[➤] Installing Zsh...\033[0m"
+      pkg install -y zsh
+    fi
+
+    # Set Zsh as default shell for new sessions
+    echo -e "\033[1;34m[ℹ] Setting Zsh as the default Termux shell...\033[0m"
+    termux-setup-storage >/dev/null 2>&1 || true
+
+    # Append zsh exec to bash startup (Termux default)
+    if ! grep -q 'exec zsh' ~/.bashrc; then
+      echo 'exec zsh' >> ~/.bashrc
+      echo -e "\033[1;32m[✔] Added 'exec zsh' to .bashrc (default shell switched)\033[0m"
+    fi
+  fi
+
+  # Reload shell so changes take effect immediately
+  echo -e "\033[1;34m[ℹ] Starship setup complete — switching to Zsh now!\033[0m"
+  exec zsh
 }
+
 
 
 
