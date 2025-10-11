@@ -99,20 +99,16 @@ if command -v fzf >/dev/null 2>&1; then
 fi
 # =========[ Custom T-header(logo with figlet) Setup ]=========
 
-if command -v boxes >/dev/null 2>&1 && \
-   command -v figlet >/dev/null 2>&1 && \
+if command -v figlet >/dev/null 2>&1 && \
    command -v tput >/dev/null 2>&1; then
 
   user="$(mktemp)"
   banner () {
     clear
+    tput civis
     # === Load config === #
     CONFIG="$HOME/.config/theader/theader.cfg"
     LOGO_DIR="$HOME/.config/theader/logo"
-
-    echo -e "\033[37m$(echo "" | \
-        boxes -a c -s "$(echo "${COLUMNS:-80}x10")" \
-        -d ansi-heavy)\033[0m"
 
     # === Load title from config (fallback: "tyro 2.0") === #
     title=$(grep '^title=' "$CONFIG" | cut -d'=' -f2-)
@@ -128,29 +124,70 @@ if command -v boxes >/dev/null 2>&1 && \
         ;;
     esac
 
-    tput cup 4 0
-    # Use a larger figlet font for bigger time/title
-    figlet -f big -c -t -p \
-        -w "$(echo "$((${COLUMNS:-80}+17))")" \
-        "$title" | lolcat -f
+    # Render figlet title (plain for measuring)
+    FIGLET_FONT="${THEADER_FIGLET_FONT:-big}"
+    FIGLET_WIDTH="${THEADER_FIGLET_WIDTH:-1000}"
+    fig_tmp="$(mktemp)"
+    figlet -f "$FIGLET_FONT" -w "$FIGLET_WIDTH" "$title" > "$fig_tmp" 2>/dev/null || echo "$title" > "$fig_tmp"
 
+    # Logo and indent from config
     logo_file=$(grep '^logo=' "$CONFIG" | cut -d'=' -f2)
     indent_size=$(grep '^indent=' "$CONFIG" | cut -d'=' -f2)
-
     [[ -z "$indent_size" ]] && indent_size=2
-
     indent=$(printf '%*s' "$indent_size")
 
-    tput cup 1 0
-    [[ -n "$logo_file" && -f "$LOGO_DIR/$logo_file" ]] && \
+    # Measure logo (without color stripping to keep visible width conservative)
+    if [[ -n "$logo_file" && -f "$LOGO_DIR/$logo_file" ]]; then
+      logo_h=$(wc -l < "$LOGO_DIR/$logo_file")
+      logo_w=$(awk '{ if (length>m) m=length } END{ print (m?m:0) }' "$LOGO_DIR/$logo_file")
+    else
+      logo_h=0; logo_w=0
+    fi
+
+    # Measure figlet output
+    fig_h=$(wc -l < "$fig_tmp")
+    fig_w=$(awk '{ if (length>m) m=length } END{ print (m?m:0) }' "$fig_tmp")
+
+    # Inner box size (max of logo/figlet widths with left indent + right padding)
+    right_pad=2
+    inner_w_base=$(( indent_size + logo_w ))
+    (( indent_size + fig_w > inner_w_base )) && inner_w_base=$(( indent_size + fig_w ))
+    inner_w=$(( inner_w_base + right_pad ))
+
+    v_gap=1
+    inner_h=$(( logo_h + v_gap + fig_h ))
+
+    # Draw dynamic heavy border
+    tput setaf 7; tput bold
+    tput cup 0 0
+    hbar=$(printf '━%.0s' $(seq 1 "$inner_w"))
+    spaces=$(printf ' %.0s' $(seq 1 "$inner_w"))
+    printf '┏%s┓\n' "$hbar"
+    for ((i = 1; i <= inner_h; i++)); do
+      printf '┃%s┃\n' "$spaces"
+    done
+    printf '┗%s┛\n' "$hbar"
+    tput sgr0
+
+    # Print logo at top inside the box
+    if [[ -n "$logo_file" && -f "$LOGO_DIR/$logo_file" ]]; then
+      tput cup 1 1
       sed "s/^/${indent}/" "$LOGO_DIR/$logo_file"
+    fi
 
-    tput cup 1 0
-    # Set vertical separator color to white
-    tput setaf 7
-    for ((i=1; i<=8; i++)); do echo "┃"; done
+    # Print title (figlet) below logo, optionally with lolcat
+    tput cup $((1 + logo_h + v_gap)) 1
+    if command -v lolcat >/dev/null 2>&1; then
+      sed "s/^/${indent}/" "$fig_tmp" | lolcat -f
+    else
+      echo -en "\033[97m"
+      sed "s/^/${indent}/" "$fig_tmp"
+      echo -en "\033[0m"
+    fi
 
-    tput cup 10 0
+    # Cleanup and restore cursor
+    rm -f "$fig_tmp"
+    tput cup $((inner_h + 2)) 0
     tput cnorm
   }
 
