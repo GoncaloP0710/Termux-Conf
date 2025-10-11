@@ -136,35 +136,57 @@ banner() {
     # Use passed logo parameter if provided, otherwise use default logo
     local logo_file="${2:-$logotemp}"
 
-    # Set border color to white
+    # Calculate dynamic border size based on logo (and figlet so the time also fits)
+    local strip_ansi='s/\x1B\[[^0-9;]*[mGK]//g'
+    local logo_clean
+    logo_clean=$(sed "$strip_ansi" "$logo_file")
+    local figlet_clean
+    figlet_clean=$(sed "$strip_ansi" "$figftemp" 2>/dev/null || cat "$figftemp")
+
+    # Dimensions
+    local logo_h logo_w fig_h fig_w
+    logo_h=$(printf "%s\n" "$logo_clean" | wc -l)
+    logo_w=$(printf "%s\n" "$logo_clean" | awk '{ if (length>m) m=length } END{ print (m?m:0) }')
+    fig_h=$(printf "%s\n" "$figlet_clean" | wc -l)
+    fig_w=$(printf "%s\n" "$figlet_clean" | awk '{ if (length>m) m=length } END{ print (m?m:0) }')
+
+    # Padding must match print_* helpers
+    local logo_pad=3         # print_center_file() uses 3 spaces
+    local fig_pad=24         # print_prefixed_file() left prefix length
+    local right_pad=2        # right breathing room inside the box
+
+    local inner_w_base=$((logo_pad + logo_w))
+    if (( fig_pad + fig_w > inner_w_base )); then
+        inner_w_base=$((fig_pad + fig_w))
+    fi
+    local inner_w=$((inner_w_base + right_pad))
+
+    local v_gap=1
+    local inner_h=$((logo_h + v_gap + fig_h))
+
+    # Draw dynamic border sized to content
     echo -e "\033[37;1m"
     PUT 0 0
-    echo "┌$(seq -s─ $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')┐"
-    for ((i = 1; i <= 8; i++)); do
-        echo "│$(seq -s\  $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')│"
+    local hbar spaces
+    hbar="$(seq -s─ $((inner_w + 1)) | tr -d '[:digit:]')"
+    spaces="$(seq -s\  $((inner_w + 1)) | tr -d '[:digit:]')"
+    echo "┌${hbar}┐"
+    for ((i = 1; i <= inner_h; i++)); do
+        echo "│${spaces}│"
     done
-    echo "└$(seq -s─ $(($(stty size | cut -d ' ' -f 2) - 1)) | tr -d '[:digit:]')┘"
+    echo "└${hbar}┘"
 
-    PUT 5 0
-    # Make figlet output bright white, then reset color
+    # Print logo at the top inside the box
+    PUT 1 0
+    print_center_file "$logo_file"
+
+    # Print time figlet below the logo inside the box
+    PUT $((1 + logo_h + v_gap)) 0
     echo -en "\033[97m"
     print_prefixed_file "$figftemp"
     echo -en "\033[0m"
 
-    PUT 2 0
-    print_center_file "$logo_file"
-
-    PUT 1 0
-    # Keep border drawing color white
-    echo -e "\033[37;1m"
-    for ((i = 1; i <= 8; i++)); do
-        echo "│"
-    done
-
-    # Removed small time at the bottom to avoid duplicate time display
-    # echo -e "\e[32m$(date '+%H:%M')\e[0m"
-
-    PUT 10 0
+    PUT $((inner_h + 2)) 0
     echo
     NORM
 }
