@@ -144,8 +144,7 @@ banner() {
     for ((i = 1; i <= 8; i++)); do
         echo "│"
     done
-    PUT 9 ${VAR4}
-    echo -e "\e[32mSetup Script \e[33m3.0\e[0m"
+    echo -e "\e[32m$(date '+%H:%M')\e[0m"
     PUT 10 0
     echo
     NORM
