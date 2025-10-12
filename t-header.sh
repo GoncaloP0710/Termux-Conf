@@ -397,7 +397,16 @@ EOF
     echo "[✔] Found existing SSH key at ~/.ssh/id_auth"
   fi
 
-  # Step 2: Add GitHub’s SSH host key (avoids host verification errors)
+  # Step 2: Generate public key automatically
+  if [ ! -f "$HOME/.ssh/id_auth.pub" ]; then
+    ssh-keygen -y -f "$HOME/.ssh/id_auth" > "$HOME/.ssh/id_auth.pub"
+    chmod 644 "$HOME/.ssh/id_auth.pub"
+    echo "[✔] Public key generated at ~/.ssh/id_auth.pub"
+  else
+    echo "[✔] Public key already exists at ~/.ssh/id_auth.pub"
+  fi
+
+  # Step 3: Add GitHub’s SSH host key (avoids host verification errors)
   if ! grep -q "github.com" "$HOME/.ssh/known_hosts" 2>/dev/null; then
     echo "[➕] Adding GitHub host key..."
     ssh-keyscan github.com >>"$HOME/.ssh/known_hosts" 2>/dev/null
@@ -407,7 +416,7 @@ EOF
     echo "[✔] GitHub host key already present."
   fi
 
-  # Step 3: Write SSH config to force using id_auth for GitHub
+  # Step 4: Write SSH config to force using id_auth for GitHub
   echo "[📝] Configuring SSH to use ~/.ssh/id_auth for GitHub..."
   cat >"$HOME/.ssh/config" <<'EOF'
 Host github.com
@@ -420,11 +429,11 @@ EOF
   chmod 600 "$HOME/.ssh/config"
   echo "[✔] SSH config created at ~/.ssh/config"
 
-  # Step 4: Start ssh-agent and add key
+  # Step 5: Start ssh-agent and add key
   eval "$(ssh-agent -s)" >/dev/null 2>&1
   ssh-add "$HOME/.ssh/id_auth" >/dev/null 2>&1 && echo "[✔] SSH key added to agent"
 
-  # Step 5: Test GitHub SSH connection
+  # Step 6: Test GitHub SSH connection
   echo -e "\n[🔍] Testing GitHub SSH connection..."
   ssh -T git@github.com 2>&1 | tee /tmp/github_ssh_test.log
 
@@ -432,11 +441,10 @@ EOF
     echo -e "\n[✅] GitHub SSH authentication successful!"
   else
     echo -e "\n[⚠] Authentication failed."
-    echo "Make sure the PUBLIC key corresponding to this private key is added to:"
+    echo "Make sure the PUBLIC key (~/.ssh/id_auth.pub) is added to:"
     echo "👉 https://github.com/settings/keys"
-    echo
-    echo "You can get your public key by running:"
-    echo "ssh-keygen -y -f ~/.ssh/id_auth > ~/.ssh/id_auth.pub"
+    echo "You can display it with:"
+    echo "cat ~/.ssh/id_auth.pub"
   fi
 }
 
