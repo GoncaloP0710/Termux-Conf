@@ -376,68 +376,66 @@ setup_theader() {
 }
 
 git_auth_setup() {
-  echo -e "\n[🔧] Setting up Git authentication with your existing SSH key...\n"
+  echo -e "\n[🔧] Setting up GitHub SSH authentication using id_auth...\n"
 
-  # 1. Ensure git and openssh are installed
-  for pkg in git openssh; do
-    if ! command -v $pkg >/dev/null 2>&1; then
-      echo "[➕] Installing $pkg..."
-      pkg install -y $pkg
-    else
-      echo "[✔] $pkg already installed."
-    fi
-  done
-
-  # 2. Ask for Git identity (optional)
-  read -rp "Enter your Git user.name (optional): " git_name
-  read -rp "Enter your Git user.email (optional): " git_email
-  [[ -n "$git_name" ]] && git config --global user.name "$git_name"
-  [[ -n "$git_email" ]] && git config --global user.email "$git_email"
-
-  # 3. Ensure .ssh exists
+  # Ensure ~/.ssh exists with proper permissions
   mkdir -p "$HOME/.ssh"
   chmod 700 "$HOME/.ssh"
 
-  echo -e "\n[📂] You can now provide your SSH authentication key."
-  echo "Choose one of the following options:"
-  echo "1) Enter path to your existing SSH private key"
-  echo "2) Paste the key manually"
-
-  read -rp "Select option (1/2): " opt
-  if [[ "$opt" == "1" ]]; then
-    read -rp "Enter full path to your private key: " key_path
-    if [[ -f "$key_path" ]]; then
-      cp "$key_path" "$HOME/.ssh/id_auth"
-      chmod 600 "$HOME/.ssh/id_auth"
-      echo "[✔] Key copied to ~/.ssh/id_auth"
-    else
-      echo "[✘] File not found: $key_path"
-      return 1
-    fi
-  else
-    echo -e "\n[📥] Paste your private key (starts with '-----BEGIN ... KEY-----')"
-    echo "When finished, press Ctrl+D on an empty line."
+  # Ensure key file exists
+  if [ ! -f "$HOME/.ssh/id_auth" ]; then
+    echo "[❌] Key not found at ~/.ssh/id_auth"
+    echo "Please paste your private key now (starts with '-----BEGIN ... KEY-----')."
+    echo "Press Ctrl+D when done."
     cat >"$HOME/.ssh/id_auth"
     chmod 600 "$HOME/.ssh/id_auth"
-    echo "[✔] SSH key saved to ~/.ssh/id_auth"
+    echo "[✔] Saved private key to ~/.ssh/id_auth"
+  else
+    echo "[✔] Found existing SSH key at ~/.ssh/id_auth"
   fi
 
-  # 4. Start ssh-agent and add key
+  # Step 1: Add GitHub’s SSH host key (avoids host verification errors)
+  if ! grep -q "github.com" "$HOME/.ssh/known_hosts" 2>/dev/null; then
+    echo "[➕] Adding GitHub host key..."
+    ssh-keyscan github.com >>"$HOME/.ssh/known_hosts" 2>/dev/null
+    chmod 644 "$HOME/.ssh/known_hosts"
+    echo "[✔] GitHub host key added."
+  else
+    echo "[✔] GitHub host key already present."
+  fi
+
+  # Step 2: Write SSH config to force using id_auth for GitHub
+  echo "[📝] Configuring SSH to use ~/.ssh/id_auth for GitHub..."
+  cat >"$HOME/.ssh/config" <<'EOF'
+Host github.com
+  HostName github.com
+  User git
+  IdentityFile ~/.ssh/id_auth
+  IdentitiesOnly yes
+  AddKeysToAgent yes
+EOF
+  chmod 600 "$HOME/.ssh/config"
+  echo "[✔] SSH config created at ~/.ssh/config"
+
+  # Step 3: Start ssh-agent and add key
   eval "$(ssh-agent -s)" >/dev/null 2>&1
   ssh-add "$HOME/.ssh/id_auth" >/dev/null 2>&1 && echo "[✔] SSH key added to agent"
 
-  # 5. Optional GitHub test
-  echo ""
-  read -rp "Test SSH connection to GitHub? (y/n): " test_github
-  if [[ "$test_github" =~ ^[Yy]$ ]]; then
-    ssh -T git@github.com || echo "[⚠] Connection test failed (make sure this key is registered on GitHub)"
+  # Step 4: Test GitHub SSH connection
+  echo -e "\n[🔍] Testing GitHub SSH connection..."
+  ssh -T git@github.com 2>&1 | tee /tmp/github_ssh_test.log
+
+  if grep -q "successfully authenticated" /tmp/github_ssh_test.log; then
+    echo -e "\n[✅] GitHub SSH authentication successful!"
+  else
+    echo -e "\n[⚠] Authentication failed."
+    echo "If this is your first time using this key, ensure the PUBLIC key is added to:"
+    echo "👉 https://github.com/settings/keys"
+    echo
+    echo "You can get your public key by running:"
+    echo "cat ~/.ssh/id_auth.pub"
   fi
-
-  echo -e "\n[✔] Git authentication setup complete!"
-  echo "You can now clone private repositories using SSH."
 }
-
-
 
 # checking screen size {column size must above 58}
 if [ ${tsize} -lt 59 ]; then
