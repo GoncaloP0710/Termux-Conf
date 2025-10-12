@@ -95,14 +95,14 @@ menu_main() {
     cat "${user}"
     echo ""
     choice=$(
-      printf "1. Install packages\n2. Setup\n3. Git Setup\n4. Exit" |
+      printf "1. Install packages\n2. Setup\n3. Git Auth Setup\n4. Exit" |
         fzf --prompt="Use ↑/↓ to navigate, Enter to select: " --exit-0
     )
 
     case $choice in
       "1. Install packages") install_packages ;;
       "2. Setup") menu_setup ;;
-      "3. Git Setup") git_setup ;;
+      "3. Git Auth Setup") git_auth_setup ;;
       "4. Exit")
         echo -e "\033[1;31m[✘] Exiting...\033[0m"
         break
@@ -375,58 +375,68 @@ setup_theader() {
   fi
 }
 
-git_setup() {
-  echo -e "\n[🔧] Setting up Git and importing your SSH key...\n"
+git_auth_setup() {
+  echo -e "\n[🔧] Setting up Git authentication with your existing SSH key...\n"
 
-  # 1. Ensure git is installed
-  if ! command -v git >/dev/null 2>&1; then
-    echo "[➕] Installing git..."
-    pkg install -y git
-  else
-    echo "[✔] git already installed."
-  fi
+  # 1. Ensure git and openssh are installed
+  for pkg in git openssh; do
+    if ! command -v $pkg >/dev/null 2>&1; then
+      echo "[➕] Installing $pkg..."
+      pkg install -y $pkg
+    else
+      echo "[✔] $pkg already installed."
+    fi
+  done
 
-  # 2. Ask for user info (optional)
-  read -rp "Enter your Git user.name: " git_name
-  read -rp "Enter your Git user.email: " git_email
-  git config --global user.name "$git_name"
-  git config --global user.email "$git_email"
-  echo "[✔] Git user info configured."
+  # 2. Ask for Git identity (optional)
+  read -rp "Enter your Git user.name (optional): " git_name
+  read -rp "Enter your Git user.email (optional): " git_email
+  [[ -n "$git_name" ]] && git config --global user.name "$git_name"
+  [[ -n "$git_email" ]] && git config --global user.email "$git_email"
 
-  # 3. Import existing SSH key
+  # 3. Ensure .ssh exists
   mkdir -p "$HOME/.ssh"
   chmod 700 "$HOME/.ssh"
 
-  echo -e "\n[📥] Paste your PRIVATE SSH key below (starts with '-----BEGIN ... KEY-----')"
-  echo "When finished, press Ctrl+D on an empty line."
-  cat >"$HOME/.ssh/id_ed25519"
+  echo -e "\n[📂] You can now provide your SSH authentication key."
+  echo "Choose one of the following options:"
+  echo "1) Enter path to your existing SSH private key"
+  echo "2) Paste the key manually"
 
-  # Set correct permissions
-  chmod 600 "$HOME/.ssh/id_ed25519"
-  echo "[✔] SSH private key saved to ~/.ssh/id_ed25519"
-
-  # 4. Optionally add public key
-  read -rp "Do you also want to paste your PUBLIC key? (y/n): " add_pub
-  if [[ "$add_pub" =~ ^[Yy]$ ]]; then
-    echo -e "\n[📥] Paste your PUBLIC SSH key below (starts with 'ssh-ed25519' or 'ssh-rsa')"
+  read -rp "Select option (1/2): " opt
+  if [[ "$opt" == "1" ]]; then
+    read -rp "Enter full path to your private key: " key_path
+    if [[ -f "$key_path" ]]; then
+      cp "$key_path" "$HOME/.ssh/id_auth"
+      chmod 600 "$HOME/.ssh/id_auth"
+      echo "[✔] Key copied to ~/.ssh/id_auth"
+    else
+      echo "[✘] File not found: $key_path"
+      return 1
+    fi
+  else
+    echo -e "\n[📥] Paste your private key (starts with '-----BEGIN ... KEY-----')"
     echo "When finished, press Ctrl+D on an empty line."
-    cat >"$HOME/.ssh/id_ed25519.pub"
-    chmod 644 "$HOME/.ssh/id_ed25519.pub"
-    echo "[✔] SSH public key saved to ~/.ssh/id_ed25519.pub"
+    cat >"$HOME/.ssh/id_auth"
+    chmod 600 "$HOME/.ssh/id_auth"
+    echo "[✔] SSH key saved to ~/.ssh/id_auth"
   fi
 
-  # 5. Start ssh-agent and add key
+  # 4. Start ssh-agent and add key
   eval "$(ssh-agent -s)" >/dev/null 2>&1
-  ssh-add "$HOME/.ssh/id_ed25519" >/dev/null 2>&1 && echo "[✔] SSH key added to agent"
+  ssh-add "$HOME/.ssh/id_auth" >/dev/null 2>&1 && echo "[✔] SSH key added to agent"
 
-  # 6. Test GitHub connection (optional)
-  read -rp "Do you want to test your SSH connection to GitHub? (y/n): " test_github
+  # 5. Optional GitHub test
+  echo ""
+  read -rp "Test SSH connection to GitHub? (y/n): " test_github
   if [[ "$test_github" =~ ^[Yy]$ ]]; then
-    ssh -T git@github.com || echo "[⚠] Connection test failed (you may need to add the key to GitHub)"
+    ssh -T git@github.com || echo "[⚠] Connection test failed (make sure this key is registered on GitHub)"
   fi
 
-  echo -e "\n[✔] Git SSH setup complete!"
+  echo -e "\n[✔] Git authentication setup complete!"
+  echo "You can now clone private repositories using SSH."
 }
+
 
 
 # checking screen size {column size must above 58}
