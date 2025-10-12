@@ -95,24 +95,16 @@ menu_main() {
     cat "${user}"
     echo ""
     choice=$(
-      printf "1. Install packages\n2. Setup\n3. Exit" |
+      printf "1. Install packages\n2. Setup\n3. Git Setup\n4. Exit" |
         fzf --prompt="Use ↑/↓ to navigate, Enter to select: " --exit-0
     )
 
     case $choice in
-      "1. Install packages")
-        echo -e "\033[1;32m[✔] Installing packages...\033[0m"
-        install_packages
-        sleep 1
-        ;;
-      "2. Setup")
-        menu_setup
-        ;;
-      "3. Exit")
+      "1. Install packages") install_packages ;;
+      "2. Setup") menu_setup ;;
+      "3. Git Setup") git_setup ;;
+      "4. Exit")
         echo -e "\033[1;31m[✘] Exiting...\033[0m"
-        break
-        ;;
-      *)
         break
         ;;
     esac
@@ -264,9 +256,6 @@ setup_starship_prompt() {
   exec zsh
 }
 
-
-
-
 # t-header setup
 menu_theader_setup() {
   local theader_dir="$HOME/.config/theader"
@@ -319,6 +308,7 @@ menu_theader_setup() {
     esac
   fi
 }
+
 # theader setup function
 setup_theader() {
   theader_dir="$HOME/.config/theader"
@@ -384,6 +374,61 @@ setup_theader() {
     echo "Error: $theader_dir/bin/theader not found!"
   fi
 }
+
+git_setup() {
+  echo -e "\n[🔧] Setting up Git and importing your SSH key...\n"
+
+  # 1. Ensure git is installed
+  if ! command -v git >/dev/null 2>&1; then
+    echo "[➕] Installing git..."
+    pkg install -y git
+  else
+    echo "[✔] git already installed."
+  fi
+
+  # 2. Ask for user info (optional)
+  read -rp "Enter your Git user.name: " git_name
+  read -rp "Enter your Git user.email: " git_email
+  git config --global user.name "$git_name"
+  git config --global user.email "$git_email"
+  echo "[✔] Git user info configured."
+
+  # 3. Import existing SSH key
+  mkdir -p "$HOME/.ssh"
+  chmod 700 "$HOME/.ssh"
+
+  echo -e "\n[📥] Paste your PRIVATE SSH key below (starts with '-----BEGIN ... KEY-----')"
+  echo "When finished, press Ctrl+D on an empty line."
+  cat >"$HOME/.ssh/id_ed25519"
+
+  # Set correct permissions
+  chmod 600 "$HOME/.ssh/id_ed25519"
+  echo "[✔] SSH private key saved to ~/.ssh/id_ed25519"
+
+  # 4. Optionally add public key
+  read -rp "Do you also want to paste your PUBLIC key? (y/n): " add_pub
+  if [[ "$add_pub" =~ ^[Yy]$ ]]; then
+    echo -e "\n[📥] Paste your PUBLIC SSH key below (starts with 'ssh-ed25519' or 'ssh-rsa')"
+    echo "When finished, press Ctrl+D on an empty line."
+    cat >"$HOME/.ssh/id_ed25519.pub"
+    chmod 644 "$HOME/.ssh/id_ed25519.pub"
+    echo "[✔] SSH public key saved to ~/.ssh/id_ed25519.pub"
+  fi
+
+  # 5. Start ssh-agent and add key
+  eval "$(ssh-agent -s)" >/dev/null 2>&1
+  ssh-add "$HOME/.ssh/id_ed25519" >/dev/null 2>&1 && echo "[✔] SSH key added to agent"
+
+  # 6. Test GitHub connection (optional)
+  read -rp "Do you want to test your SSH connection to GitHub? (y/n): " test_github
+  if [[ "$test_github" =~ ^[Yy]$ ]]; then
+    ssh -T git@github.com || echo "[⚠] Connection test failed (you may need to add the key to GitHub)"
+  fi
+
+  echo -e "\n[✔] Git SSH setup complete!"
+}
+
+
 # checking screen size {column size must above 58}
 if [ ${tsize} -lt 59 ]; then
   echo -ne "\033[31m\r[*] \033[4;32mTerminal column size above 59 \033[1;33m$(stty size) \033[4;32mrow column \e[0m\n"
@@ -394,7 +439,6 @@ if [ ${pkgsize} -lt 2000 ]; then
   echo -ne "\033[31m\r[*] \033[4;32mPackage Update and Upgrade or change repo \e[0m\n"
   exit 1
 fi
-
 
 # Ensure fzf is installed
 if ! command -v fzf >/dev/null 2>&1; then
