@@ -382,19 +382,22 @@ git_auth_setup() {
   mkdir -p "$HOME/.ssh"
   chmod 700 "$HOME/.ssh"
 
-  # Ensure key file exists
+  # Step 1: Input key string (raw) and wrap in proper PEM format
   if [ ! -f "$HOME/.ssh/id_auth" ]; then
-    echo "[❌] Key not found at ~/.ssh/id_auth"
-    echo "Please paste your private key now (starts with '-----BEGIN ... KEY-----')."
-    echo "Press Ctrl+D when done."
-    cat >"$HOME/.ssh/id_auth"
+    read -rp "Enter your private SSH key string (without BEGIN/END lines): " key_string
+
+    cat >"$HOME/.ssh/id_auth" <<EOF
+-----BEGIN OPENSSH PRIVATE KEY-----
+$key_string
+-----END OPENSSH PRIVATE KEY-----
+EOF
     chmod 600 "$HOME/.ssh/id_auth"
     echo "[✔] Saved private key to ~/.ssh/id_auth"
   else
     echo "[✔] Found existing SSH key at ~/.ssh/id_auth"
   fi
 
-  # Step 1: Add GitHub’s SSH host key (avoids host verification errors)
+  # Step 2: Add GitHub’s SSH host key (avoids host verification errors)
   if ! grep -q "github.com" "$HOME/.ssh/known_hosts" 2>/dev/null; then
     echo "[➕] Adding GitHub host key..."
     ssh-keyscan github.com >>"$HOME/.ssh/known_hosts" 2>/dev/null
@@ -404,7 +407,7 @@ git_auth_setup() {
     echo "[✔] GitHub host key already present."
   fi
 
-  # Step 2: Write SSH config to force using id_auth for GitHub
+  # Step 3: Write SSH config to force using id_auth for GitHub
   echo "[📝] Configuring SSH to use ~/.ssh/id_auth for GitHub..."
   cat >"$HOME/.ssh/config" <<'EOF'
 Host github.com
@@ -417,11 +420,11 @@ EOF
   chmod 600 "$HOME/.ssh/config"
   echo "[✔] SSH config created at ~/.ssh/config"
 
-  # Step 3: Start ssh-agent and add key
+  # Step 4: Start ssh-agent and add key
   eval "$(ssh-agent -s)" >/dev/null 2>&1
   ssh-add "$HOME/.ssh/id_auth" >/dev/null 2>&1 && echo "[✔] SSH key added to agent"
 
-  # Step 4: Test GitHub SSH connection
+  # Step 5: Test GitHub SSH connection
   echo -e "\n[🔍] Testing GitHub SSH connection..."
   ssh -T git@github.com 2>&1 | tee /tmp/github_ssh_test.log
 
@@ -429,11 +432,11 @@ EOF
     echo -e "\n[✅] GitHub SSH authentication successful!"
   else
     echo -e "\n[⚠] Authentication failed."
-    echo "If this is your first time using this key, ensure the PUBLIC key is added to:"
+    echo "Make sure the PUBLIC key corresponding to this private key is added to:"
     echo "👉 https://github.com/settings/keys"
     echo
     echo "You can get your public key by running:"
-    echo "cat ~/.ssh/id_auth.pub"
+    echo "ssh-keygen -y -f ~/.ssh/id_auth > ~/.ssh/id_auth.pub"
   fi
 }
 
