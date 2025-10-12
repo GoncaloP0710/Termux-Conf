@@ -376,37 +376,53 @@ setup_theader() {
 }
 
 git_auth_setup() {
-  echo -e "\n[🔧] Setting up GitHub SSH authentication using id_auth...\n"
+  echo -e "\n[🔧] GitHub SSH Authentication Setup\n"
 
-  # Ensure ~/.ssh exists with proper permissions
+  choice=$(
+    printf "1. Use existing private key (manual input)\n2. Generate new SSH key pair" |
+      fzf --prompt="Choose setup method ➤ " --ansi --exit-0
+  )
+
   mkdir -p "$HOME/.ssh"
   chmod 700 "$HOME/.ssh"
 
-  # Step 1: Input key string (raw) and wrap in proper PEM format
-  if [ ! -f "$HOME/.ssh/id_auth" ]; then
-    read -rp "Enter your private SSH key string (without BEGIN/END lines): " key_string
+  case $choice in
+    "1. Use existing private key (manual input)")
+      echo -e "\n[🪪] Manual key setup selected.\n"
 
-    cat >"$HOME/.ssh/id_auth" <<EOF
+      if [ ! -f "$HOME/.ssh/id_auth" ]; then
+        read -rp "Enter your private SSH key string (without BEGIN/END lines): " key_string
+        cat >"$HOME/.ssh/id_auth" <<EOF
 -----BEGIN OPENSSH PRIVATE KEY-----
 $key_string
 -----END OPENSSH PRIVATE KEY-----
 EOF
-    chmod 600 "$HOME/.ssh/id_auth"
-    echo "[✔] Saved private key to ~/.ssh/id_auth"
-  else
-    echo "[✔] Found existing SSH key at ~/.ssh/id_auth"
-  fi
+        chmod 600 "$HOME/.ssh/id_auth"
+        echo "[✔] Saved private key to ~/.ssh/id_auth"
+      else
+        echo "[✔] Found existing SSH key at ~/.ssh/id_auth"
+      fi
 
-  # Step 2: Generate public key automatically
-  if [ ! -f "$HOME/.ssh/id_auth.pub" ]; then
-    ssh-keygen -y -f "$HOME/.ssh/id_auth" > "$HOME/.ssh/id_auth.pub"
-    chmod 644 "$HOME/.ssh/id_auth.pub"
-    echo "[✔] Public key generated at ~/.ssh/id_auth.pub"
-  else
-    echo "[✔] Public key already exists at ~/.ssh/id_auth.pub"
-  fi
+      if [ ! -f "$HOME/.ssh/id_auth.pub" ]; then
+        ssh-keygen -y -f "$HOME/.ssh/id_auth" >"$HOME/.ssh/id_auth.pub"
+        chmod 644 "$HOME/.ssh/id_auth.pub"
+        echo "[✔] Public key generated at ~/.ssh/id_auth.pub"
+      else
+        echo "[✔] Public key already exists at ~/.ssh/id_auth.pub"
+      fi
+      ;;
+      
+    "2. Generate new SSH key pair")
+      echo -e "\n[🆕] Generating new SSH key pair..."
+      read -rp "Enter your email (for GitHub key label): " user_email
+      ssh-keygen -t ed25519 -C "$user_email" -f "$HOME/.ssh/id_auth" -N ""
+      chmod 600 "$HOME/.ssh/id_auth"
+      chmod 644 "$HOME/.ssh/id_auth.pub"
+      echo "[✔] New SSH key pair created at ~/.ssh/id_auth{,.pub}"
+      ;;
+  esac
 
-  # Step 3: Add GitHub’s SSH host key (avoids host verification errors)
+  # Step 3: Add GitHub’s SSH host key
   if ! grep -q "github.com" "$HOME/.ssh/known_hosts" 2>/dev/null; then
     echo "[➕] Adding GitHub host key..."
     ssh-keyscan github.com >>"$HOME/.ssh/known_hosts" 2>/dev/null
@@ -416,8 +432,8 @@ EOF
     echo "[✔] GitHub host key already present."
   fi
 
-  # Step 4: Write SSH config to force using id_auth for GitHub
-  echo "[📝] Configuring SSH to use ~/.ssh/id_auth for GitHub..."
+  # Step 4: Configure SSH to use id_auth
+  echo "[📝] Configuring SSH for GitHub..."
   cat >"$HOME/.ssh/config" <<'EOF'
 Host github.com
   HostName github.com
@@ -429,11 +445,23 @@ EOF
   chmod 600 "$HOME/.ssh/config"
   echo "[✔] SSH config created at ~/.ssh/config"
 
-  # Step 5: Start ssh-agent and add key
+  # Step 5: Add key to ssh-agent
   eval "$(ssh-agent -s)" >/dev/null 2>&1
   ssh-add "$HOME/.ssh/id_auth" >/dev/null 2>&1 && echo "[✔] SSH key added to agent"
 
-  # Step 6: Test GitHub SSH connection
+  # Step 6: Display the public key for user to add to GitHub
+  echo -e "\n\033[1;36m[📋] Copy the following public key and paste it here:\033[0m"
+  echo -e "👉 \033[1;34mhttps://github.com/settings/ssh/new\033[0m"
+  echo -e "\n\033[1;33m----- BEGIN PUBLIC KEY -----\033[0m"
+  cat "$HOME/.ssh/id_auth.pub"
+  echo -e "\033[1;33m----- END PUBLIC KEY -----\033[0m\n"
+  echo -e "\033[1;36m💡 Steps:\033[0m"
+  echo -e "  1. Go to: https://github.com/settings/ssh/new"
+  echo -e "  2. Paste the key above into the 'Key' field."
+  echo -e "  3. Give it a title (e.g., 'Termux Device')."
+  echo -e "  4. Click 'Add SSH key'.\n"
+
+  # Step 7: Test GitHub SSH connection
   echo -e "\n[🔍] Testing GitHub SSH connection..."
   ssh -T git@github.com 2>&1 | tee /tmp/github_ssh_test.log
 
@@ -441,9 +469,9 @@ EOF
     echo -e "\n[✅] GitHub SSH authentication successful!"
   else
     echo -e "\n[⚠] Authentication failed."
-    echo "Make sure the PUBLIC key (~/.ssh/id_auth.pub) is added to:"
-    echo "👉 https://github.com/settings/keys"
-    echo "You can display it with:"
+    echo "Make sure you've added the PUBLIC key (~/.ssh/id_auth.pub) to:"
+    echo "👉 https://github.com/settings/ssh/new"
+    echo "You can show it again with:"
     echo "cat ~/.ssh/id_auth.pub"
   fi
 }
