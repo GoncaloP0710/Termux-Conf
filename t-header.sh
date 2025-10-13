@@ -461,8 +461,16 @@ EOF
   echo -e "  3. Give it a title (e.g., 'Termux Device')."
   echo -e "  4. Click 'Add SSH key'.\n"
 
-  # Step 7: Test GitHub SSH connection
-  echo -e "\n[🔍] Testing GitHub SSH connection..."
+  # Optional: open GitHub SSH key page automatically in Termux
+  if command -v termux-open-url >/dev/null 2>&1; then
+    termux-open-url "https://github.com/settings/ssh/new"
+  fi
+
+  # Wait for user confirmation before testing connection
+  echo -e "\033[1;35m⏸️  Press any key once you've copied the public key to GitHub to continue...\033[0m"
+  read -n 1 -s -r -p ""
+
+  echo -e "\n\n[🔍] Testing GitHub SSH connection..."
   ssh -T git@github.com 2>&1 | tee /tmp/github_ssh_test.log
 
   if grep -q "successfully authenticated" /tmp/github_ssh_test.log; then
