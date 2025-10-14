@@ -95,7 +95,7 @@ menu_main() {
     cat "${user}"
     echo ""
     choice=$(
-      printf "1. Install packages\n2. Setup\n3. Git Auth Setup\n4. Exit" |
+      printf "1. Install packages\n2. Setup\n3. Git Auth Setup\n4. Connect to Personal PC via SSH\n5. Exit" |
         fzf --prompt="Use ↑/↓ to navigate, Enter to select: " --exit-0
     )
 
