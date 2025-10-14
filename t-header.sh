@@ -95,7 +95,7 @@ menu_main() {
     cat "${user}"
     echo ""
     choice=$(
-      printf "1. Install packages\n2. Setup\n3. Git Auth Setup\n4. Connect to Personal PC via SSH\n5. Exit" |
+      printf "1. Install packages\n2. Setup\n3. Git Auth Setup\n4. Connect to Personal PC via SSH\n5. Set up alias to Connect to Personal PC via SSH\n6. Exit" |
         fzf --prompt="Use ↑/↓ to navigate, Enter to select: " --exit-0
     )
 
@@ -104,7 +104,8 @@ menu_main() {
       "2. Setup") menu_setup ;;
       "3. Git Auth Setup") git_auth_setup ;;
       "4. Connect to Personal PC via SSH") pc_ssh_setup ;;
-      "5. Exit")
+      "5. Set up alias to Connect to Personal PC via SSH") pc_ssh_quick_alias_setup ;;
+      "6. Exit")
         echo -e "\033[1;31m[✘] Exiting...\033[0m"
         break
         ;;
@@ -536,6 +537,52 @@ pc_ssh_setup() {
     echo "ssh -i ~/.ssh/id_auth -p $pc_port $pc_user@$pc_ip"
   fi
 }
+
+pc_ssh_quick_alias_setup() {
+  echo -e "\n[🖥️] Personal PC SSH Quick Connection Setup\n"
+
+  while true; do
+    read -rp "Enter your PC's username: " pc_user
+    read -rp "Enter your PC's IP address: " pc_ip
+    read -rp "Enter SSH port (default 22): " pc_port
+    pc_port=${pc_port:-22}
+    read -rp "Enter alias name for this connection (default 'pcssh'): " alias_name
+    alias_name=${alias_name:-pcssh}
+
+    alias_command="ssh -i ~/.ssh/id_auth -p ${pc_port} ${pc_user}@${pc_ip}"
+
+    echo -e "\n[⚙️] Testing connection..."
+    if eval "$alias_command -o ConnectTimeout=5 exit" 2>/dev/null; then
+      echo -e "\n[✅] Connection successful!"
+
+      echo "alias ${alias_name}='${alias_command}'" >> ~/.bashrc
+      echo "alias ${alias_name}='${alias_command}'" >> ~/.zshrc 2>/dev/null
+      echo -e "[✔] Alias created: \033[1;33m${alias_name}\033[0m"
+      echo -e "You can now connect anytime with: \033[1;32m${alias_name}\033[0m"
+      source ~/.bashrc 2>/dev/null
+      break
+    else
+      echo -e "\n[❌] Connection failed!"
+      echo -e "Please ensure:\n  • Your PC is online\n  • SSH is running (sshd)\n  • The key is in ~/.ssh/authorized_keys on your PC\n"
+
+      choice=$(
+        printf "1. Retry setup\n2. Exit\n" |
+          fzf --prompt="What would you like to do? ➤ " --ansi --exit-0
+      )
+
+      case $choice in
+        "1. Retry setup")
+          echo -e "\n[🔁] Retrying...\n"
+          ;;
+        "2. Exit")
+          echo -e "\n[🚪] Exiting setup.\n"
+          break
+          ;;
+      esac
+    fi
+  done
+}
+
 
 # checking screen size {column size must above 58}
 if [ ${tsize} -lt 59 ]; then
