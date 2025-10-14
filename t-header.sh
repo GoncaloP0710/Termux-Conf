@@ -103,7 +103,8 @@ menu_main() {
       "1. Install packages") install_packages ;;
       "2. Setup") menu_setup ;;
       "3. Git Auth Setup") git_auth_setup ;;
-      "4. Exit")
+      "4. Connect to Personal PC via SSH") pc_ssh_setup ;;
+      "5. Exit")
         echo -e "\033[1;31m[✘] Exiting...\033[0m"
         break
         ;;
@@ -226,7 +227,7 @@ setup_starship_prompt() {
   if ! grep -Fq 'eval "$(starship init zsh)"' "$HOME/.zshrc" 2>/dev/null; then
     # Add a newline if .zshrc doesn't end with one
     [[ -s "$HOME/.zshrc" && $(tail -c1 "$HOME/.zshrc") != "" ]] && printf '\n' >> "$HOME/.zshrc"
-    
+
     printf '%s\n' 'eval "$(starship init zsh)"' | tee -a "$HOME/.zshrc" >/dev/null
     echo -e "\033[1;32m[✔] Added Starship init line to .zshrc\033[0m"
   fi
@@ -411,7 +412,7 @@ EOF
         echo "[✔] Public key already exists at ~/.ssh/id_auth.pub"
       fi
       ;;
-      
+
     "2. Generate new SSH key pair")
       echo -e "\n[🆕] Generating new SSH key pair..."
       read -rp "Enter your email (for GitHub key label): " user_email
@@ -481,6 +482,58 @@ EOF
     echo "👉 https://github.com/settings/ssh/new"
     echo "You can show it again with:"
     echo "cat ~/.ssh/id_auth.pub"
+  fi
+}
+
+pc_ssh_setup() {
+  echo -e "\n[🖥️] Personal PC SSH Connection Setup\n"
+
+  read -rp "Enter your PC's username: " pc_user
+  read -rp "Enter your PC's IP address: " pc_ip
+  read -rp "Enter SSH port (default 22): " pc_port
+  pc_port=${pc_port:-22}
+
+  echo -e "\n[ℹ️] Checking for SSH key..."
+  if [ ! -f "$HOME/.ssh/id_auth" ]; then
+    echo "[⚠] No SSH key found! You can use the one created during Git Auth Setup."
+    read -rp "Generate a new key for this PC? (y/n): " gen_choice
+    if [[ $gen_choice =~ ^[Yy]$ ]]; then
+      read -rp "Enter your email (for key label): " user_email
+      ssh-keygen -t ed25519 -C "$user_email" -f "$HOME/.ssh/id_auth" -N ""
+      chmod 600 "$HOME/.ssh/id_auth"
+      chmod 644 "$HOME/.ssh/id_auth.pub"
+      echo "[✔] SSH key created at ~/.ssh/id_auth.pub"
+    else
+      echo "[ℹ️] Proceeding with existing key..."
+    fi
+  fi
+
+  echo -e "\n[📋] Your public key (to be added to your PC’s ~/.ssh/authorized_keys):\n"
+  echo -e "\033[1;33m----- COPY BELOW THIS LINE -----\033[0m"
+  cat "$HOME/.ssh/id_auth.pub"
+  echo -e "\033[1;33m----- COPY ABOVE THIS LINE -----\033[0m\n"
+
+  echo -e "\033[1;36m💡 If your PC has password SSH enabled:\033[0m"
+  echo "    You can copy the key automatically by running this on Termux:"
+  echo -e "    \033[1;32mssh-copy-id -p $pc_port $pc_user@$pc_ip\033[0m"
+  echo -e "\n\033[1;36m💡 If your PC only allows key-based SSH:\033[0m"
+  echo "    You’ll need to manually add the above public key to:"
+  echo "      ~/.ssh/authorized_keys  (on your PC)"
+  echo -e "\nWhen done, press any key to test the connection..."
+  read -n 1 -s -r -p ""
+
+  echo -e "\n[🔍] Testing SSH connection to $pc_user@$pc_ip..."
+  ssh -i "$HOME/.ssh/id_auth" -p "$pc_port" "$pc_user@$pc_ip" 'echo "[✅] Connection successful!"' 2>&1 | tee /tmp/pc_ssh_test.log
+
+  if grep -q "Connection successful" /tmp/pc_ssh_test.log; then
+    echo -e "\n[✅] SSH connection verified!"
+  else
+    echo -e "\n[⚠] Connection failed. Possible reasons:"
+    echo "  - SSH service not running on the PC."
+    echo "  - Firewall blocking port $pc_port."
+    echo "  - Your key not added to ~/.ssh/authorized_keys."
+    echo "You can test manually with:"
+    echo "ssh -i ~/.ssh/id_auth -p $pc_port $pc_user@$pc_ip"
   fi
 }
 
