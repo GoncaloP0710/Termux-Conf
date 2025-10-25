@@ -554,19 +554,19 @@ setup_nvim() {
   # Ensure config directory exists
   mkdir -p "$HOME/.config"
 
-  # If dotfiles exist in ./dotfile/nvim, link them
   NVIM_SRC="$SCRIPT_DIR/dotfile/nvim"
   NVIM_DEST="$HOME/.config/nvim"
 
   if [[ -d "$NVIM_SRC" ]]; then
     # Backup existing config if needed
-    if [[ -d "$NVIM_DEST" && ! -L "$NVIM_DEST" ]]; then
+    if [[ -d "$NVIM_DEST" ]]; then
       echo -e "\033[1;33m[⚠] Existing Neovim config found — backing up to ~/.config/nvim.backup.$(date +%Y%m%d%H%M%S)\033[0m"
       mv "$NVIM_DEST" "$NVIM_DEST.backup.$(date +%Y%m%d%H%M%S)"
     fi
 
-    ln -sfn "$NVIM_SRC" "$NVIM_DEST"
-    echo -e "\033[1;32m[✔] Linked dotfile Neovim config to ~/.config/nvim\033[0m"
+    echo -e "\033[1;33m[📁] Copying Neovim config to ~/.config/nvim...\033[0m"
+    cp -r "$NVIM_SRC" "$NVIM_DEST"
+    echo -e "\033[1;32m[✔] Neovim configuration copied successfully.\033[0m"
   else
     echo -e "\033[1;31m[⚠] No Neovim config found in $NVIM_SRC.\033[0m"
     echo "You can add your config in: $SCRIPT_DIR/dotfile/nvim"
@@ -586,13 +586,11 @@ setup_nvim() {
   echo -e "\n\033[1;34m[ℹ] Neovim setup complete!\033[0m"
   echo -e "Launch it with: \033[1;32mnvim\033[0m\n"
 
-  # Ask user if they want to open nvim now
   read -rp "Open Neovim now to verify setup? (y/n): " open_now
   if [[ "$open_now" =~ ^[Yy]$ ]]; then
     exec nvim
   fi
 }
-
 
 pc_ssh_quick_alias_setup() {
   echo -e "\n[🖥️] Personal PC SSH Quick Connection Setup\n"
