@@ -565,7 +565,8 @@ setup_nvim() {
     fi
 
     echo -e "\033[1;33m[📁] Copying Neovim config to ~/.config/nvim...\033[0m"
-    cp -r "$NVIM_SRC" "$NVIM_DEST"
+    mkdir -p "$NVIM_DEST"
+    cp -r "$NVIM_SRC"/* "$NVIM_DEST"/
     echo -e "\033[1;32m[✔] Neovim configuration copied successfully.\033[0m"
   else
     echo -e "\033[1;31m[⚠] No Neovim config found in $NVIM_SRC.\033[0m"
@@ -576,7 +577,7 @@ setup_nvim() {
   echo -e "\n[🔧] Installing recommended utilities for Neovim..."
   pkg install -y ripgrep fd nodejs python neovim-remote
 
-  # Install Packer or Lazy.nvim if not detected
+  # Install Packer if not detected
   PACKER_DIR="$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim"
   if [[ ! -d "$PACKER_DIR" ]]; then
     echo -e "\033[1;33m[➕] Installing packer.nvim (plugin manager)...\033[0m"
@@ -591,6 +592,7 @@ setup_nvim() {
     exec nvim
   fi
 }
+
 
 pc_ssh_quick_alias_setup() {
   echo -e "\n[🖥️] Personal PC SSH Quick Connection Setup\n"
