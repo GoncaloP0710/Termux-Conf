@@ -115,18 +115,20 @@ menu_main() {
 
 menu_setup() {
   choice=$(
-    printf "1. Zsh\n2. Fish (coming soon)" |
-      sed 's/2\. Fish (coming soon)/2. Fish \x1b[31m(\x1b[33mcoming soon\x1b[31m)\x1b[0m/' |
+    printf "1. Zsh\n2. Neovim\n3. Fish (coming soon)" |
+      sed 's/3\. Fish (coming soon)/3. Fish \x1b[31m(\x1b[33mcoming soon\x1b[31m)\x1b[0m/' |
       fzf --prompt="Setup option ➤ " --ansi --exit-0
   )
+
 
   case $choice in
     "1. Zsh")
       menu_zsh_setup
-      # echo -e "\033[1;34m[ℹ] Setting up Zsh...\033[0m"
-      sleep 1
       ;;
-    "2. Fish (coming soon)")
+    "2. Neovim")
+      setup_nvim
+      ;;
+    "3. Fish (coming soon)")
       echo -e "\033[1;33m[⚠] Fish setup is coming soon!\033[0m"
       sleep 1
       ;;
@@ -537,6 +539,60 @@ pc_ssh_setup() {
     echo "ssh -i ~/.ssh/id_auth -p $pc_port $pc_user@$pc_ip"
   fi
 }
+
+setup_nvim() {
+  echo -e "\n[📝] Setting up Neovim environment...\n"
+
+  # Check if nvim is installed
+  if ! command -v nvim >/dev/null 2>&1; then
+    echo -e "\033[1;33m[➕] Installing Neovim...\033[0m"
+    pkg install -y neovim
+  else
+    echo -e "\033[1;32m[✔] Neovim already installed.\033[0m"
+  fi
+
+  # Ensure config directory exists
+  mkdir -p "$HOME/.config"
+
+  # If dotfiles exist in ./dotfile/nvim, link them
+  NVIM_SRC="$SCRIPT_DIR/dotfile/nvim"
+  NVIM_DEST="$HOME/.config/nvim"
+
+  if [[ -d "$NVIM_SRC" ]]; then
+    # Backup existing config if needed
+    if [[ -d "$NVIM_DEST" && ! -L "$NVIM_DEST" ]]; then
+      echo -e "\033[1;33m[⚠] Existing Neovim config found — backing up to ~/.config/nvim.backup.$(date +%Y%m%d%H%M%S)\033[0m"
+      mv "$NVIM_DEST" "$NVIM_DEST.backup.$(date +%Y%m%d%H%M%S)"
+    fi
+
+    ln -sfn "$NVIM_SRC" "$NVIM_DEST"
+    echo -e "\033[1;32m[✔] Linked dotfile Neovim config to ~/.config/nvim\033[0m"
+  else
+    echo -e "\033[1;31m[⚠] No Neovim config found in $NVIM_SRC.\033[0m"
+    echo "You can add your config in: $SCRIPT_DIR/dotfile/nvim"
+  fi
+
+  # Install optional tools for better Neovim UX
+  echo -e "\n[🔧] Installing recommended utilities for Neovim..."
+  pkg install -y ripgrep fd nodejs python neovim-remote
+
+  # Install Packer or Lazy.nvim if not detected
+  PACKER_DIR="$HOME/.local/share/nvim/site/pack/packer/start/packer.nvim"
+  if [[ ! -d "$PACKER_DIR" ]]; then
+    echo -e "\033[1;33m[➕] Installing packer.nvim (plugin manager)...\033[0m"
+    git clone --depth 1 https://github.com/wbthomason/packer.nvim "$PACKER_DIR"
+  fi
+
+  echo -e "\n\033[1;34m[ℹ] Neovim setup complete!\033[0m"
+  echo -e "Launch it with: \033[1;32mnvim\033[0m\n"
+
+  # Ask user if they want to open nvim now
+  read -rp "Open Neovim now to verify setup? (y/n): " open_now
+  if [[ "$open_now" =~ ^[Yy]$ ]]; then
+    exec nvim
+  fi
+}
+
 
 pc_ssh_quick_alias_setup() {
   echo -e "\n[🖥️] Personal PC SSH Quick Connection Setup\n"
